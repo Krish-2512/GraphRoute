@@ -48,10 +48,20 @@ def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def parse_datetimes(df: pd.DataFrame) -> pd.DataFrame:
-    time_cols = [c for c in df.columns if "time" in c or "date" in c]
-    for col in time_cols:
+    # Only parse columns that are actual timestamps, not numeric duration columns.
+    # Columns like actual_time / osrm_time / segment_*_time are minutes (float),
+    # not datetime strings — converting them breaks remove_outliers.
+    TIMESTAMP_KEYWORDS = ("creation", "start", "end", "date", "timestamp", "cutoff")
+    SKIP_KEYWORDS = ("actual_time", "osrm_time", "segment_actual", "segment_osrm")
+
+    timestamp_cols = [
+        c for c in df.columns
+        if any(kw in c for kw in TIMESTAMP_KEYWORDS)
+        and not any(skip in c for skip in SKIP_KEYWORDS)
+    ]
+    for col in timestamp_cols:
         try:
-            df[col] = pd.to_datetime(df[col], infer_datetime_format=True, errors="coerce")
+            df[col] = pd.to_datetime(df[col], errors="coerce")
         except Exception:
             pass
     return df
