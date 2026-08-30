@@ -1,0 +1,16 @@
+[
+  {
+    "model": "GraphSAGE",
+    "MAE": 198.96,
+    "RMSE": 349.02,
+    "within_15pct": 15.15,
+    "MAPE": 102.75
+  },
+  {
+    "model": "GAT",
+    "MAE": 115.26,
+    "RMSE": 223.43,
+    "within_15pct": 25.29,
+    "MAPE": 65.72
+  }
+]

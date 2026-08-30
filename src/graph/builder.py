@@ -113,12 +113,23 @@ def save_graph(G: nx.DiGraph, name: str = "logistics_graph") -> None:
     with open(pickle_path, "wb") as f:
         pickle.dump(G, f)
     graphml_path = GRAPH_DIR / f"{name}.graphml"
-    # GraphML cannot store list-type attributes (embeddings); strip them first
+    
+    # GraphML cannot store list-type attributes or None values
     G_export = G.copy()
+    for n, data in G_export.nodes(data=True):
+        for k, v in list(data.items()):
+            if v is None:
+                data[k] = ""
     for _, _, data in G_export.edges(data=True):
         data.pop("embedding", None)
-    nx.write_graphml(G_export, str(graphml_path))
-    log.info(f"Graph saved → {pickle_path} + {graphml_path}")
+        for k, v in list(data.items()):
+            if v is None:
+                data[k] = ""
+    try:
+        nx.write_graphml(G_export, str(graphml_path))
+    except Exception as e:
+        log.warning(f"GraphML export failed: {e}")
+    log.info(f"Graph saved → {pickle_path}")
 
 
 def load_graph(name: str = "logistics_graph") -> nx.DiGraph:
@@ -147,19 +158,31 @@ def graph_to_dataframe(G: nx.DiGraph) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def run(df_path: str | Path | None = None) -> nx.DiGraph:
+    if df_path is None:
+        df_path = Path("data/processed/features.parquet")
+    df = pd.read_parquet(df_path)
+    
+    from src.nlp.address_parser import parse_hub_name
+    unique_hubs = pd.concat([df["source_name"], df["destination_name"]]).dropna().unique()
+    parsed_map = {h: parse_hub_name(h) for h in unique_hubs}
+
+    if "src_city" not in df.columns:
+        df["src_city"] = df["source_name"].map(lambda h: parsed_map.get(h, {}).get("city"))
+        df["src_hub_type"] = df["source_name"].map(lambda h: parsed_map.get(h, {}).get("hub_type", "unknown"))
+    if "dst_city" not in df.columns:
+        df["dst_city"] = df["destination_name"].map(lambda h: parsed_map.get(h, {}).get("city"))
+        df["dst_hub_type"] = df["destination_name"].map(lambda h: parsed_map.get(h, {}).get("hub_type", "unknown"))
+
+    G = build_graph(df)
+    save_graph(G, name="logistics_graph")
+    return G
+
+
 if __name__ == "__main__":
-    sample = pd.DataFrame({
-        "source_name": ["Delhi_Hub", "Delhi_Hub", "Mumbai_Hub"],
-        "destination_name": ["Mumbai_Hub", "Pune_Hub", "Chennai_Hub"],
-        "route_type": ["FTL", "Carting", "FTL"],
-        "delay_ratio": [1.3, 1.1, 1.5],
-        "dwell_time_proxy": [15, 8, 20],
-        "osrm_time": [600, 180, 900],
-        "actual_time": [780, 198, 1350],
-        "osrm_distance": [1400, 150, 1330],
-        "src_city": ["Delhi", "Delhi", "Mumbai"],
-        "dst_city": ["Mumbai", "Pune", "Chennai"],
-    })
-    G = build_graph(sample)
-    print(nx.info(G))
-    print(graph_to_dataframe(G))
+    import sys
+    root_dir = Path(__file__).resolve().parent.parent.parent
+    if str(root_dir) not in sys.path:
+        sys.path.insert(0, str(root_dir))
+    run()
+

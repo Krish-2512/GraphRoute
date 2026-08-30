@@ -47,7 +47,7 @@ def encode_route_type(df: pd.DataFrame) -> pd.DataFrame:
 def encode_time_of_day(df: pd.DataFrame) -> pd.DataFrame:
     if "time_of_day" in df.columns:
         mapping = {"night": 0, "morning": 1, "afternoon": 2, "evening": 3}
-        df["time_of_day_enc"] = df["time_of_day"].map(mapping).fillna(-1).astype(int)
+        df["time_of_day_enc"] = df["time_of_day"].astype(str).str.lower().map(mapping).fillna(0).astype(int)
     return df
 
 

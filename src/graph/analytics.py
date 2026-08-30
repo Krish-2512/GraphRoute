@@ -144,16 +144,30 @@ def bottleneck_report(G: nx.DiGraph, top_n: int = 10) -> pd.DataFrame:
 
 def save_reports(centrality_df: pd.DataFrame, chronic_df: pd.DataFrame, out_dir: str | Path = "data/processed") -> None:
     out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
     centrality_df.to_csv(out_dir / "hub_centrality.csv", index=False)
     chronic_df.to_csv(out_dir / "chronic_corridors.csv", index=False)
     log.info(f"Analytics reports saved → {out_dir}")
 
 
+def run(G: Optional[nx.DiGraph] = None) -> tuple[pd.DataFrame, pd.DataFrame]:
+    import sys
+    root_dir = Path(__file__).resolve().parent.parent.parent
+    if str(root_dir) not in sys.path:
+        sys.path.insert(0, str(root_dir))
+    from src.graph.builder import load_graph
+    if G is None:
+        G = load_graph()
+
+    centrality_df = compute_centrality(G)
+    centrality_df = compute_sla_breach_contribution(G, centrality_df)
+    chronic_df = get_chronic_corridors(G)
+    save_reports(centrality_df, chronic_df)
+    return centrality_df, chronic_df
+
+
 if __name__ == "__main__":
-    from src.graph.builder import build_graph, load_graph
-    G = load_graph()
-    report = bottleneck_report(G)
-    print(report[["hub", "city", "betweenness_centrality", "pagerank", "sla_breach_pct"]].head(5))
-    chronic = get_chronic_corridors(G)
-    print(f"\nChronic corridors: {len(chronic)}")
-    print(chronic.head())
+    c_df, ch_df = run()
+    print("Top 5 Bottlenecks:\n", c_df[["hub", "city", "betweenness_centrality", "pagerank", "sla_breach_pct"]].head(5))
+    print(f"\nTotal Chronic Corridors: {len(ch_df)}")
+

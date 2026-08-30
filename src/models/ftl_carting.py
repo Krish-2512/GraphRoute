@@ -196,19 +196,25 @@ def predict_route_type(
     return results
 
 
+def run(df_path: str | Path | None = None):
+    import sys
+    root_dir = Path(__file__).resolve().parent.parent.parent
+    if str(root_dir) not in sys.path:
+        sys.path.insert(0, str(root_dir))
+    from src.models.baseline import add_graph_features
+
+    if df_path is None:
+        df_path = Path("data/processed/features.parquet")
+    df = pd.read_parquet(df_path)
+    df = add_graph_features(df)
+    
+    if "is_intercity" not in df.columns:
+        df["is_intercity"] = (df["osrm_distance"] > 400).astype(int)
+
+    model = train(df)
+    return model
+
+
 if __name__ == "__main__":
-    sample = pd.DataFrame({
-        "osrm_distance": [120, 800, 350, 1200],
-        "time_of_day_enc": [1, 3, 2, 0],
-        "corridor_mean_delay": [1.05, 1.45, 1.15, 1.60],
-        "corridor_volume": [200, 50, 150, 30],
-        "src_betweenness": [0.1, 0.4, 0.2, 0.05],
-        "src_pagerank": [0.02, 0.08, 0.03, 0.01],
-        "dwell_time_proxy": [5, 25, 10, 40],
-        "is_intercity": [0, 1, 0, 1],
-        "route_type": ["Carting", "FTL", "Carting", "FTL"],
-    })
-    model = train(sample)
-    if model:
-        results = predict_route_type(sample)
-        print(results[["route_type_recommendation", "ftl_probability", "expected_time_saving_min", "decision_reason"]])
+    run()
+

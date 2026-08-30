@@ -1,0 +1,6 @@
+{
+  "target_coverage_pct": 90.0,
+  "empirical_coverage_pct": 90.19,
+  "avg_interval_width_min": 129.81,
+  "q_hat_radius_min": 69.95
+}

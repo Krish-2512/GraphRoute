@@ -1,0 +1,21 @@
+{
+  "5fold_baseline_mae_mean": 45.42,
+  "5fold_baseline_mae_std": 0.37,
+  "5fold_graph_mae_mean": 30.36,
+  "5fold_graph_mae_std": 0.32,
+  "paired_t_test": {
+    "t_statistic": 99.4254,
+    "p_value": 6.135764111638047e-08,
+    "is_statistically_significant": true
+  },
+  "wilcoxon_signed_rank_test": {
+    "statistic": 0.0,
+    "p_value": 0.0625,
+    "is_statistically_significant": false
+  },
+  "ks_test_temporal_shift": {
+    "ks_statistic": 0.0921,
+    "p_value": 3.0014550533487855e-228,
+    "distribution_shift_detected": true
+  }
+}

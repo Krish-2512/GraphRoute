@@ -15,13 +15,13 @@ Pipeline:
 """
 
 import re
+import difflib
 import logging
 from functools import lru_cache
 from pathlib import Path
 from typing import Optional
 
 import pandas as pd
-from fuzzywuzzy import process as fuzz_process
 
 log = logging.getLogger(__name__)
 
@@ -102,9 +102,9 @@ def _spacy_city(text: str, nlp) -> Optional[str]:
     doc = nlp(text)
     for ent in doc.ents:
         if ent.label_ in ("GPE", "LOC"):
-            match, score = fuzz_process.extractOne(ent.text, KNOWN_CITIES)
-            if score >= 70:
-                return match
+            matches = difflib.get_close_matches(ent.text, KNOWN_CITIES, n=1, cutoff=0.7)
+            if matches:
+                return matches[0]
     return None
 
 
@@ -125,9 +125,9 @@ def parse_hub_name(name: str) -> dict:
     if city is None:
         for token in tokens:
             if len(token) >= 4:
-                match, score = fuzz_process.extractOne(token, KNOWN_CITIES)
-                if score >= 75:
-                    city = match
+                matches = difflib.get_close_matches(token.title(), KNOWN_CITIES, n=1, cutoff=0.75)
+                if matches:
+                    city = matches[0]
                     break
 
     state = _infer_state(city) if city else None

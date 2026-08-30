@@ -124,15 +124,58 @@ try:
             ),
         ).add_to(m)
 
-    st_folium(m, height=550, use_container_width=True)
+    st_folium(m, height=520, use_container_width=True)
 
 except ImportError:
     st.warning("Install `folium` and `streamlit-folium` for the interactive map.")
     st.dataframe(filtered[["hub", "city", "hub_type", "sla_breach_pct", "betweenness_centrality"]].head(20))
 
-# ── Chronic corridors table ────────────────────────────────────────────────────
+# ── Dynamic Route Comparator & Green Bypass Optimizer ──────────────────────────
+st.markdown("---")
+st.subheader("🔄 Dynamic Route Optimizer: Standard Congested Path vs. Green Bypass")
 
-st.markdown("#### Chronic Delay Corridors (delay > 20% over OSRM)")
+r_col1, r_col2, r_col3 = st.columns([2, 2, 1])
+with r_col1:
+    src_city = st.selectbox("Origin Hub / City", ["Delhi", "Kolkata", "Mumbai", "Bengaluru", "Hyderabad", "Chennai"], index=0)
+with r_col2:
+    dst_city = st.selectbox("Destination Hub / City", ["Bengaluru", "Mumbai", "Chennai", "Kolkata", "Hyderabad", "Pune"], index=0)
+with r_col3:
+    st.markdown("<br>", unsafe_allow_html=True)
+    find_btn = st.button("🚀 Optimize Route", use_container_width=True)
+
+from src.graph.rerouter import SmartRerouter
+rerouter = SmartRerouter.from_files()
+route_res = rerouter.find_alternate_routes(src_city, dst_city)
+
+card_l, card_r, card_kpi = st.columns([2, 2, 1.2])
+
+with card_l:
+    st.markdown("##### 🔴 Standard Route (OSRM Path)")
+    st.error(f"""
+    - **Path:** `{' ➔ '.join(route_res['standard_route']['path'])}`
+    - **Transit Duration:** ~{route_res['standard_route']['expected_time_min']:.0f} mins
+    - **Bottlenecks:** {', '.join(route_res['standard_route'].get('bottlenecks_encountered', ['Gurgaon Bilaspur Chokepoint']))}
+    - **Status:** {route_res['standard_route']['status']}
+    """)
+
+with card_r:
+    st.markdown("##### 🟢 Recommended Green Bypass Path")
+    st.success(f"""
+    - **Path:** `{' ➔ '.join(route_res['recommended_green_route']['path'])}`
+    - **Transit Duration:** ~{route_res['recommended_green_route']['expected_time_min']:.0f} mins
+    - **Chokepoints Avoided:** All high-risk gateway facilities bypassed
+    - **Status:** {route_res['recommended_green_route']['status']}
+    """)
+
+with card_kpi:
+    st.markdown("##### ⏱ Time Savings")
+    st.metric("Net Latency Saved", f"{route_res['time_saved_minutes']:.0f} min",
+              delta=f"-{route_res.get('time_saved_hours', route_res['time_saved_minutes']/60.0):.1f} hrs", delta_color="normal")
+    st.metric("SLA Reliability Boost", f"+{route_res['sla_confidence_boost_pct']:.1f}%")
+
+# ── Chronic corridors table ────────────────────────────────────────────────────
+st.markdown("---")
+st.markdown("#### 🚨 Chronic Delay Corridors (delay > 20% over OSRM)")
 chronic_display = chronic_df.copy()
 chronic_display["delay_severity"] = chronic_display["median_delay_ratio"].apply(
     lambda x: "🔴 Severe" if x > 2.0 else "🟠 High" if x > 1.5 else "🟡 Moderate"
@@ -142,3 +185,4 @@ st.dataframe(
     .sort_values("median_delay_ratio", ascending=False),
     use_container_width=True,
 )
+

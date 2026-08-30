@@ -1,0 +1,16 @@
+feature,mean_abs_shap
+osrm_distance,343.57605
+osrm_time,103.64224
+corridor_mean_delay,33.616295
+dwell_time_proxy,10.503959
+corridor_volume,5.5715866
+corridor_std_delay,5.0471797
+time_of_day_enc,3.9256353
+source_out_degree,2.9458377
+dest_in_degree,2.347384
+src_avg_dwell,2.3358448
+dst_pagerank,1.6140543
+src_pagerank,1.6116025
+is_ftl,1.3830333
+dst_betweenness,1.2031151
+src_betweenness,1.0047313
